@@ -1,14 +1,17 @@
-import { useEffect, useState } from 'react';
-import { Anatomy } from './sections/Anatomy';
-import { CheatSheet } from './sections/CheatSheet';
-import { DeltaWindow } from './sections/DeltaWindow';
-import { HeroScope } from './sections/HeroScope';
-import { HowToSync, SyncCode } from './sections/HowToSync';
-import { PipelineMap } from './sections/PipelineMap';
-import { RawStreams } from './sections/RawStreams';
-import { RecorderLoop } from './sections/RecorderLoop';
-import { ShortAnswer } from './sections/ShortAnswer';
-import { WhyItMatters } from './sections/WhyItMatters';
+import { GotchaWall } from '../components/GotchaWall';
+import { PageFooter, SeriesEyebrow, Topbar, type SourceItem } from '../components/SiteChrome';
+import { Anatomy } from '../sections/Anatomy';
+import { CheatSheet } from '../sections/CheatSheet';
+import { DeltaWindow } from '../sections/DeltaWindow';
+import { HeroScope } from '../sections/HeroScope';
+import { HowToSync, SyncCode } from '../sections/HowToSync';
+import { PipelineMap } from '../sections/PipelineMap';
+import { RawStreams } from '../sections/RawStreams';
+import { RecorderLoop } from '../sections/RecorderLoop';
+import { ShortAnswer } from '../sections/ShortAnswer';
+import { WhyItMatters } from '../sections/WhyItMatters';
+import { LEROBOT_GOTCHAS } from '../sections/lerobotGotchas';
+import { LEROBOT_SHA, lerobotSrc } from '../site';
 
 const NAV = [
   { id: 'format', label: 'Format' },
@@ -17,74 +20,33 @@ const NAV = [
   { id: 'sync', label: 'Sync' },
   { id: 'recorder', label: 'Recorder' },
   { id: 'pipeline', label: 'Pipeline' },
+  { id: 'gotchas', label: 'What still bites' },
   { id: 'cheatsheet', label: 'Cheat sheet' },
 ];
 
-const SHA = '8c920c4270460851cedd2737657584586d3dc66f';
-const gh = (path: string, lines: string) => `https://github.com/huggingface/lerobot/blob/${SHA}/${path}#${lines}`;
+const SOURCES: SourceItem[] = [
+  { href: lerobotSrc('src/lerobot/datasets/dataset_writer.py', 'L202-L227'), label: 'dataset_writer.py · add_frame', note: 'timestamp = frame_index / fps' },
+  { href: lerobotSrc('src/lerobot/datasets/feature_utils.py', 'L235-L257'), label: 'feature_utils.py · validate_frame', note: 'a passed-in timestamp is rejected' },
+  { href: lerobotSrc('src/lerobot/datasets/feature_utils.py', 'L174-L232'), label: 'feature_utils.py · get_delta_indices', note: 'round(dt × fps), multiples of 1/fps' },
+  { href: lerobotSrc('src/lerobot/datasets/dataset_reader.py', 'L305-L324'), label: 'dataset_reader.py · _get_query_indices', note: 'clamp to the episode, *_is_pad masks' },
+  { href: lerobotSrc('src/lerobot/datasets/video_utils.py', 'L190-L206'), label: 'video_utils.py · decode tolerance', note: 'frame must sit within tolerance_s' },
+  { href: lerobotSrc('src/lerobot/datasets/lerobot_dataset.py', 'L180-L184'), label: 'lerobot_dataset.py · tolerance_s', note: 'default 1e-4 s' },
+  { href: lerobotSrc('src/lerobot/cameras/opencv/camera_opencv.py', 'L585-L615'), label: 'camera_opencv.py · read_latest', note: 'newest buffered frame, raises past 500 ms' },
+  { href: lerobotSrc('src/lerobot/scripts/lerobot_record.py', 'L228-L330'), label: 'lerobot_record.py · record_loop', note: 'one tick: observe, act, add_frame' },
+  { href: lerobotSrc('src/lerobot/utils/cycle_timer.py', 'L104-L110'), label: 'cycle_timer.py · CycleTimer', note: 'sleeps to 1/fps, warns on slow ticks' },
+  { href: lerobotSrc('src/lerobot/datasets/utils.py', 'L89-L149'), label: 'datasets/utils.py · v3 layout', note: 'paths, 100 MB data and 200 MB video files' },
+  { href: lerobotSrc('src/lerobot/configs/video.py', 'L89-L92'), label: 'configs/video.py · encoder defaults', note: 'libsvtav1 (AV1), yuv420p, crf 30' },
+  { href: lerobotSrc('src/lerobot/policies/pi0/configuration_pi0.py', 'L37-L39'), label: 'configuration_pi0.py · chunk_size', note: '50 actions per prediction' },
+];
 
-function Topbar() {
-  const [active, setActive] = useState<string | null>(null);
-  const [progress, setProgress] = useState(0);
-
-  useEffect(() => {
-    const onScroll = () => {
-      const h = document.documentElement;
-      const max = h.scrollHeight - h.clientHeight;
-      setProgress(max > 0 ? h.scrollTop / max : 0);
-    };
-    onScroll();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    const io = new IntersectionObserver(
-      (entries) => {
-        for (const e of entries) if (e.isIntersecting) setActive(e.target.id);
-      },
-      { rootMargin: '-45% 0px -50% 0px' },
-    );
-    NAV.forEach((n) => {
-      const el = document.getElementById(n.id);
-      if (el) io.observe(el);
-    });
-    return () => {
-      window.removeEventListener('scroll', onScroll);
-      io.disconnect();
-    };
-  }, []);
-
-  return (
-    <header className="topbar">
-      <div className="wrap-wide topbar__inner">
-        <a className="topbar__mark" href="#top">
-          <svg width="22" height="22" viewBox="0 0 32 32" aria-hidden="true">
-            <rect width="32" height="32" rx="7" fill="#111a22" />
-            <path d="M9 7v18M16 7v18M23 7v18" stroke="#2b3a49" strokeWidth="1.5" />
-            <circle cx="9" cy="11" r="2.6" fill="#c4870f" />
-            <circle cx="16" cy="16" r="2.6" fill="#3c9ad1" />
-            <circle cx="23" cy="21" r="2.6" fill="#d45a9e" />
-          </svg>
-          LeRobot and time sync
-        </a>
-        <nav className="topbar__nav" aria-label="Sections">
-          {NAV.map((n) => (
-            <a key={n.id} className="topbar__link" href={`#${n.id}`} aria-current={active === n.id ? 'true' : undefined}>
-              {n.label}
-            </a>
-          ))}
-        </nav>
-      </div>
-      <div className="topbar__progress" style={{ transform: `scaleX(${progress})` }} aria-hidden="true" />
-    </header>
-  );
-}
-
-export default function App() {
+export default function LeRobotPage() {
   return (
     <>
-      <Topbar />
+      <Topbar page="lerobot" sections={NAV} />
       <main id="top">
         <section className="hero">
           <div className="wrap-wide">
-            <div className="eyebrow">Explainer · Ray Summit 2026, VLA fine-tuning workflow</div>
+            <SeriesEyebrow page="lerobot" extra="Ray Summit 2026, VLA fine-tuning workflow" />
             <h1 className="hero__title">
               A LeRobot dataset stores synced data. <em>It doesn't sync it.</em>
             </h1>
@@ -136,6 +98,16 @@ export default function App() {
                 converge. They just teach the wrong timing.
               </p>
             </div>
+            <figure className="pullquote">
+              <blockquote>
+                "Training VLAs require synchronous 'snapshots' of the robotic system at each 1/fps... we preferred to store these synchronous
+                snapshots (i.e. the state of all the system at a moment t), rather than all events happening in the system."
+              </blockquote>
+              <figcaption>
+                Caroline Pascal, LeRobot maintainer, on why real hardware timestamps aren't stored ·{' '}
+                <a href="https://github.com/huggingface/lerobot/issues/3513">issue #3513, June 2026</a>
+              </figcaption>
+            </figure>
           </div>
         </section>
 
@@ -337,6 +309,20 @@ export default function App() {
           </div>
         </section>
 
+        <section className="section" id="gotchas">
+          <div className="wrap prose">
+            <div className="eyebrow">From the community</div>
+            <h2>What still bites</h2>
+            <p className="gap-md">
+              Open problems and gotchas from the LeRobot issue tracker and the Hugging Face forum, as of October 2026. Each card links to the thread.
+              The pattern: decode speed, silent misalignment, and tools that assume one fps and identical features.
+            </p>
+          </div>
+          <div className="wrap-wide gap-lg">
+            <GotchaWall items={LEROBOT_GOTCHAS} label="Filter LeRobot gotchas" />
+          </div>
+        </section>
+
         <section className="section" id="cheatsheet">
           <div className="wrap-wide">
             <div className="eyebrow">Keep this</div>
@@ -348,65 +334,16 @@ export default function App() {
         </section>
       </main>
 
-      <footer className="footer">
-        <div className="wrap-wide">
-          <h2>Sources</h2>
-          <p style={{ marginTop: 10, maxWidth: '44rem' }}>
-            LeRobot facts come from its main-branch source (version 0.6.2, dataset codebase v3.0), commit {SHA.slice(0, 7)}{' '}
-            of Oct 3, 2026. Latencies, offsets and joint values in the figures are illustrative.
-          </p>
-          <ul className="sources">
-            <li>
-              <a href={gh('src/lerobot/datasets/dataset_writer.py', 'L202-L227')}>dataset_writer.py · add_frame</a>
-              <span>timestamp = frame_index / fps</span>
-            </li>
-            <li>
-              <a href={gh('src/lerobot/datasets/feature_utils.py', 'L235-L257')}>feature_utils.py · validate_frame</a>
-              <span>a passed-in timestamp is rejected</span>
-            </li>
-            <li>
-              <a href={gh('src/lerobot/datasets/feature_utils.py', 'L174-L232')}>feature_utils.py · get_delta_indices</a>
-              <span>round(dt × fps), multiples of 1/fps</span>
-            </li>
-            <li>
-              <a href={gh('src/lerobot/datasets/dataset_reader.py', 'L305-L324')}>dataset_reader.py · _get_query_indices</a>
-              <span>clamp to the episode, *_is_pad masks</span>
-            </li>
-            <li>
-              <a href={gh('src/lerobot/datasets/video_utils.py', 'L190-L206')}>video_utils.py · decode tolerance</a>
-              <span>frame must sit within tolerance_s</span>
-            </li>
-            <li>
-              <a href={gh('src/lerobot/datasets/lerobot_dataset.py', 'L180-L184')}>lerobot_dataset.py · tolerance_s</a>
-              <span>default 1e-4 s</span>
-            </li>
-            <li>
-              <a href={gh('src/lerobot/cameras/opencv/camera_opencv.py', 'L585-L615')}>camera_opencv.py · read_latest</a>
-              <span>newest buffered frame, raises past 500 ms</span>
-            </li>
-            <li>
-              <a href={gh('src/lerobot/scripts/lerobot_record.py', 'L228-L330')}>lerobot_record.py · record_loop</a>
-              <span>one tick: observe, act, add_frame</span>
-            </li>
-            <li>
-              <a href={gh('src/lerobot/utils/cycle_timer.py', 'L104-L110')}>cycle_timer.py · CycleTimer</a>
-              <span>sleeps to 1/fps, warns on slow ticks</span>
-            </li>
-            <li>
-              <a href={gh('src/lerobot/datasets/utils.py', 'L89-L149')}>datasets/utils.py · v3 layout</a>
-              <span>paths, 100 MB data and 200 MB video files</span>
-            </li>
-            <li>
-              <a href={gh('src/lerobot/configs/video.py', 'L89-L92')}>configs/video.py · encoder defaults</a>
-              <span>libsvtav1 (AV1), yuv420p, crf 30</span>
-            </li>
-            <li>
-              <a href={gh('src/lerobot/policies/pi0/configuration_pi0.py', 'L37-L39')}>configuration_pi0.py · chunk_size</a>
-              <span>50 actions per prediction</span>
-            </li>
-          </ul>
-        </div>
-      </footer>
+      <PageFooter
+        page="lerobot"
+        intro={
+          <>
+            LeRobot facts come from its main-branch source (version 0.6.2, dataset codebase v3.0), commit {LEROBOT_SHA.slice(0, 7)} of
+            Oct 3, 2026. Latencies, offsets and joint values in the figures are illustrative.
+          </>
+        }
+        sources={SOURCES}
+      />
     </>
   );
 }

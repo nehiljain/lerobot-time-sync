@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { FrameGlyph, MissingFrame } from '../components/FrameGlyph';
 import { IconReplay, Seg } from '../components/controls';
 import { useElementWidth, usePrefersReducedMotion, useRafLoop } from '../lib/hooks';
@@ -56,11 +56,9 @@ export function HeroScope() {
   const [view, setView] = useState<'raw' | 'aligned'>('aligned');
   const [hoverK, setHoverK] = useState<number | null>(null);
   const [showTable, setShowTable] = useState(false);
-  const started = useRef(false);
 
+  // auto-start once on mount; safe under StrictMode because the cleanup cancels the pending start
   useEffect(() => {
-    if (started.current) return;
-    started.current = true;
     if (reduced) return;
     const id = window.setTimeout(() => setPlaying(true), 350);
     return () => window.clearTimeout(id);

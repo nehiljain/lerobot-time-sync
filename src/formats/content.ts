@@ -1,0 +1,165 @@
+import type { Gotcha } from '../components/GotchaWall';
+import type { SourceItem } from '../components/SiteChrome';
+
+// Per-format gotchas from the ecosystem research of 2026-10-06. Area = format.
+export const FORMATS_GOTCHAS: Gotcha[] = [
+  {
+    status: 'open',
+    area: 'openpi',
+    title: 'openpi trains on LeRobot v2.1, not v3.0',
+    body: 'openpi pins LeRobot to a May 2025 commit whose codebase version is v2.1. Open issues ask to update it.',
+    fix: 'Convert v3.0 down for openpi, or train pi0 and pi0.5 with LeRobot itself, which reads v3.0.',
+    links: [
+      { href: 'https://github.com/Physical-Intelligence/openpi/blob/main/pyproject.toml', label: 'openpi pyproject' },
+      { href: 'https://github.com/Physical-Intelligence/openpi/issues/756', label: 'openpi #756' },
+      { href: 'https://github.com/Physical-Intelligence/openpi/issues/706', label: 'openpi #706' },
+    ],
+  },
+  {
+    status: 'open',
+    area: 'GR00T',
+    title: 'GR00T reads a v2 flavor with modality.json',
+    body: 'NVIDIA\'s repo expects LeRobot v2 plus `meta/modality.json`. An issue for native v3 loading was closed as completed, but the main-branch loader still keys on `episodes.jsonl`.',
+    fix: 'Convert with `scripts/lerobot_conversion/convert_v3_to_v2.py`. Make modality.json ranges match the concatenation order of state and action.',
+    links: [
+      { href: 'https://github.com/NVIDIA/Isaac-GR00T/blob/main/getting_started/data_preparation.md', label: 'data_preparation.md' },
+      { href: 'https://github.com/NVIDIA/Isaac-GR00T/issues/774', label: 'GR00T #774' },
+    ],
+  },
+  {
+    status: 'workaround',
+    area: 'video',
+    title: 'AV1 video does not decode everywhere',
+    body: 'LeRobot encodes AV1 by default. GR00T decodes with torchcodec only and says AV1 decoding "is not guaranteed".',
+    fix: 'Use `video_backend="pyav"` in LeRobot, or convert AV1 to H.264 for GR00T (`convert_av1_to_h264.py`).',
+    links: [
+      { href: 'https://github.com/NVIDIA/Isaac-GR00T', label: 'Isaac-GR00T README' },
+      { href: 'https://github.com/huggingface/lerobot/blob/main/docs/source/groot.mdx', label: 'lerobot groot.mdx' },
+    ],
+  },
+  {
+    status: 'workaround',
+    area: 'LeRobot v3.0',
+    title: 'pi0.5 needs quantile stats',
+    body: 'pi0.5 normalizes with q01 and q99. Older datasets only have min, max, mean and std, and fail on the first batch.',
+    fix: '`lerobot-edit-dataset --operation.type recompute_stats`, then pass `--dataset.root`: the result lands in `$HF_LEROBOT_HOME`, not the cache.',
+    links: [{ href: 'https://github.com/huggingface/lerobot/blob/main/docs/source/pi05.mdx', label: 'pi05.mdx' }],
+  },
+  {
+    status: 'workaround',
+    area: 'LeRobot v3.0',
+    title: 'Call finalize() before push_to_hub()',
+    body: 'Without it, parquet writers are not closed and files lack footers.',
+    fix: '`dataset.finalize()` after the last `save_episode()`.',
+    links: [
+      { href: 'https://github.com/huggingface/lerobot/blob/main/docs/source/lerobot-dataset-v3.mdx', label: 'lerobot-dataset-v3.mdx' },
+      { href: 'https://github.com/huggingface/lerobot/pull/1903', label: 'lerobot PR #1903' },
+    ],
+  },
+  {
+    status: 'workaround',
+    area: 'RLDS',
+    title: 'RLDS pulls in a pinned TensorFlow',
+    body: 'openpi\'s RLDS path needs `tensorflow-cpu 2.15.0` on Python 3.11. OpenVLA\'s fix for "Could not load dataset info" is `tensorflow-datasets 4.9.3`.',
+    fix: 'Keep RLDS loading in its own environment, separate from PyTorch training dependencies.',
+    links: [
+      { href: 'https://github.com/Physical-Intelligence/openpi/blob/main/examples/droid/README_train.md', label: 'openpi DROID training' },
+      { href: 'https://github.com/openvla/openvla#vla-troubleshooting', label: 'OpenVLA troubleshooting' },
+    ],
+  },
+  {
+    status: 'open',
+    area: 'RLDS',
+    title: 'Not every Open X-Embodiment dataset is downloadable',
+    body: 'An open issue reports only 27 of 55 datasets available. The OXE copy of Bridge is out of date.',
+    fix: 'Copy with `gsutil` as the FAQ says. For Bridge use `bridge_orig` from the Berkeley site.',
+    links: [
+      { href: 'https://github.com/google-deepmind/open_x_embodiment/issues/104', label: 'OXE #104' },
+      { href: 'https://github.com/openvla/openvla', label: 'OpenVLA README' },
+    ],
+  },
+  {
+    status: 'workaround',
+    area: 'HDF5',
+    title: 'Raw LIBERO demos need regenerating',
+    body: 'OpenVLA regenerates LIBERO: it filters no-op actions and failed trajectories, renders at 256×256, and rotates images 180 degrees because they come out upside down.',
+    fix: 'Start from a regenerated release (OpenVLA\'s RLDS or lerobot/libero) instead of the raw HDF5.',
+    links: [{ href: 'https://github.com/openvla/openvla/blob/main/experiments/robot/libero/regenerate_libero_dataset.py', label: 'regenerate_libero_dataset.py' }],
+  },
+  {
+    status: 'workaround',
+    area: 'HDF5',
+    title: 'Original ACT shifts actions by one step',
+    body: 'ACT\'s loader offsets real-robot actions by one timestep, with the comment "hack, to make timesteps more aligned". Converted datasets don\'t carry that shift.',
+    fix: 'Decide on the action convention explicitly when you convert ALOHA data, and check it on a plotted episode.',
+    links: [{ href: 'https://github.com/tonyzhaozh/act/blob/main/utils.py', label: 'act/utils.py' }],
+  },
+  {
+    status: 'workaround',
+    area: 'HDF5',
+    title: 'robomimic expects actions in [-1, 1]',
+    body: 'robomimic\'s format normalizes actions to [-1, 1] and stores image observations as uint8 (N, H, W, 3).',
+    fix: 'Run `get_dataset_info.py` to catch violations before training.',
+    links: [{ href: 'https://robomimic.github.io/docs/datasets/overview.html', label: 'robomimic overview' }],
+  },
+  {
+    status: 'workaround',
+    area: 'Zarr',
+    title: 'Zarr datasets come with old pins',
+    body: 'Diffusion Policy pins zarr 2.12 and UMI zarr 2.16, both with old numcodecs and imagecodecs. UMI frames are JPEG-XL and need the registered codec.',
+    fix: 'Read them in the original environment and convert once; don\'t assume Zarr 3 opens them.',
+    links: [
+      { href: 'https://github.com/real-stanford/diffusion_policy/blob/main/conda_environment.yaml', label: 'DP environment' },
+      { href: 'https://github.com/real-stanford/universal_manipulation_interface/blob/main/conda_environment.yaml', label: 'UMI environment' },
+    ],
+  },
+  {
+    status: 'workaround',
+    area: 'WebDataset',
+    title: 'Shards are model-specific samples, not episodes',
+    body: 'RDT2 shards hold preprocessed action chunks and action tokens. Another model can\'t reuse them as raw demonstrations.',
+    fix: 'Keep the episode-level source (LeRobot, HDF5) and generate shards per model.',
+    links: [{ href: 'https://huggingface.co/datasets/robotics-diffusion-transformer/BimanualUR5eExample', label: 'RDT2 example card' }],
+  },
+  {
+    status: 'workaround',
+    area: 'bags / MCAP',
+    title: 'Pre-Iron .db3 bags won\'t convert with mcap convert',
+    body: 'They carry no message definitions. `rosbags-convert` also refuses unindexed ROS 1 bags and doesn\'t handle split bags.',
+    fix: 'Use `ros2 bag convert` with the original workspace sourced; reindex ROS 1 bags first.',
+    links: [
+      { href: 'https://github.com/foxglove/mcap/blob/main/website/docs/guides/cli.md', label: 'mcap CLI guide' },
+      { href: 'https://gitlab.com/ternaris/rosbags/-/blob/master/docs/topics/convert.rst', label: 'rosbags convert' },
+    ],
+  },
+  {
+    status: 'open',
+    area: 'bags / MCAP',
+    title: 'No official path from bags or MCAP to LeRobot',
+    body: 'Vendor and community converters exist (Isaac ROS `mcap-to-lerobot`, OpenTau, forge). LeRobot\'s RFC calls their v3 output unaudited.',
+    fix: 'Align first, then convert, then check fps, frame counts per camera, feature names and stats.',
+    links: [
+      { href: 'https://github.com/huggingface/lerobot/issues/4368', label: 'lerobot #4368' },
+      { href: 'https://docs.nvidia.com/learning/physical-ai/gr00t-e2e-workflow/latest/real-robot-workflow/real-data-export.html', label: 'Isaac ROS export' },
+    ],
+  },
+];
+
+export const FORMATS_SOURCES: SourceItem[] = [
+  { href: 'https://github.com/huggingface/lerobot/blob/main/docs/source/lerobot-dataset-v3.mdx', label: 'LeRobot · dataset v3 docs', note: 'layout, streaming, Lance backend' },
+  { href: 'https://github.com/huggingface/lerobot/blob/main/docs/source/porting_datasets_v3.mdx', label: 'LeRobot · porting guide', note: 'create, add_frame, finalize' },
+  { href: 'https://github.com/huggingface/lerobot/issues/3513', label: 'LeRobot #3513', note: 'snapshots, not events' },
+  { href: 'https://github.com/Physical-Intelligence/openpi#fine-tuning-base-models-on-your-own-data', label: 'openpi · README', note: 'converts to LeRobot (pinned v2.1)' },
+  { href: 'https://github.com/NVIDIA/Isaac-GR00T/blob/main/getting_started/data_preparation.md', label: 'Isaac-GR00T · data preparation', note: 'LeRobot v2 flavor + modality.json' },
+  { href: 'https://github.com/openvla/openvla', label: 'OpenVLA · README', note: 'native RLDS' },
+  { href: 'https://github.com/octo-models/octo/blob/main/octo/data/dataset.py', label: 'Octo · dataset.py', note: 'make_dataset_from_rlds' },
+  { href: 'https://github.com/google-research/rlds', label: 'RLDS', note: 'episodes of steps, archived 2024' },
+  { href: 'https://robomimic.github.io/docs/datasets/overview.html', label: 'robomimic · dataset overview', note: 'HDF5 demo groups' },
+  { href: 'https://github.com/tonyzhaozh/act/blob/main/utils.py', label: 'ACT · utils.py', note: 'HDF5 file per episode' },
+  { href: 'https://github.com/real-stanford/diffusion_policy/blob/main/diffusion_policy/common/replay_buffer.py', label: 'Diffusion Policy · replay_buffer.py', note: 'Zarr ReplayBuffer' },
+  { href: 'https://github.com/thu-ml/RDT2', label: 'RDT2 · README', note: 'WebDataset shards' },
+  { href: 'https://github.com/Tavish9/any4lerobot', label: 'any4lerobot', note: 'community converters, 1,167 stars' },
+  { href: 'https://github.com/foxglove/mcap/blob/main/website/docs/guides/cli.md', label: 'mcap · CLI guide', note: 'convert .bag and .db3' },
+  { href: 'https://huggingface.co/api/datasets?filter=LeRobot&limit=1000', label: 'Hugging Face API · LeRobot tag', note: '79,268 datasets on 2026-10-06' },
+  { href: 'https://droid-dataset.github.io/droid/the-droid-dataset', label: 'DROID · dataset page', note: 'raw 8.7 TB, RLDS 1.7 TB' },
+];
