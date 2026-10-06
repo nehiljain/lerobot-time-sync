@@ -1,0 +1,58 @@
+/*
+  Two surfaces, one rule:
+  paper  = explanation and structure (files, rows, the pipeline schematic)
+  screen = signals over time (sensor lanes, camera views, correlation)
+*/
+:root {
+  /* paper */
+  --paper: #eceee8;
+  --paper-grid: #e2e6dd;
+  --card: #f6f7f3;
+  --card-2: #eef1eb;
+  --rule: #cfd5cc;
+  --rule-strong: #b8c1b9;
+  --ink: #1b211e;
+  --ink-2: #48514c;
+  --ink-3: #5f6964;
+
+  /* screen */
+  --screen: #111a22;
+  --screen-2: #17222c;
+  --screen-3: #1e2b37;
+  --screen-grid: #223040;
+  --screen-rule: #2b3a49;
+  --screen-ink: #dbe3ea;
+  --screen-ink-2: #9aabb9;
+  --screen-ink-3: #7a8c9b;
+
+  /* sensor channels, validated as a set on --screen (dark band, adjacent CVD >= 8) */
+  --ch-cam: #c4870f;
+  --ch-joint: #3c9ad1;
+  --ch-action: #d45a9e;
+  --ch-grip: #45a35c;
+
+  /* pipeline task kinds, validated on --card; shape carries identity too */
+  --cpu: #2a78d6;
+  --gpu: #9a4fb5;
+
+  /* status: bottleneck callouts mirror the slide's orange */
+  --warn-fill: #fbe6d4;
+  --warn-edge: #e58a4e;
+  --warn-ink: #7a3a10;
+  --good: #0ca30c;
+  --good-ink: #0a6b0a;
+  --mid: #b07a00;
+  --bad: #d03b3b;
+
+  --focus-paper: #1b211e;
+  --focus-screen: #e0a43a;
+
+  --font-display: 'Archivo Variable', 'Archivo', system-ui, sans-serif;
+  --font-body: 'Host Grotesk Variable', 'Host Grotesk', system-ui, sans-serif;
+  --font-mono: 'Martian Mono Variable', 'Martian Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  --measure: 41rem;
+  --wide: 68rem;
+  --radius: 14px;
+  --radius-sm: 8px;
+}
